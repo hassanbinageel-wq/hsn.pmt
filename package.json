@@ -1,0 +1,27 @@
+{
+  "name": "hsn-pmt",
+  "version": "1.2.0",
+  "private": true,
+  "description": "hsn.pmt — تطبيق أندرويد لإدارة أعمال الذكاء الاصطناعي (صور/فيديو)، التكاليف والأرباح والفواتير والاشتراكات — يعمل دون اتصال، بيانات محلية.",
+  "author": "حسن جمال الليل (hsn.pmt)",
+  "license": "UNLICENSED",
+  "scripts": {
+    "add:android": "cap add android",
+    "sync": "cap sync android",
+    "assets": "capacitor-assets generate --android --iconBackgroundColor '#0b110e' --iconBackgroundColorDark '#0b110e' --splashBackgroundColor '#0b110e' --splashBackgroundColorDark '#0b110e'",
+    "open:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.1",
+    "@capacitor/app": "^7.0.1",
+    "@capacitor/core": "^7.0.1",
+    "@capacitor/filesystem": "^7.0.1",
+    "@capacitor/share": "^7.0.1",
+    "@capacitor/splash-screen": "^7.0.1",
+    "@capacitor-community/contacts": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.1"
+  }
+}
