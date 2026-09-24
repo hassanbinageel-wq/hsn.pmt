@@ -1,0 +1,84 @@
+name: build-apk
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java (JDK 21)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Accept Android SDK licenses
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          echo "licenses accepted"
+
+      - name: Install packages
+        run: npm install
+
+      - name: Add Android platform
+        run: npx cap add android
+
+      - name: Sync
+        run: npx cap sync android
+
+      - name: Generate icon & splash
+        run: npx capacitor-assets generate --android --iconBackgroundColor '#05111a' --iconBackgroundColorDark '#05111a' --splashBackgroundColor '#05111a' --splashBackgroundColorDark '#05111a' || echo "skip assets"
+
+      - name: Add permissions to manifest
+        run: |
+          MF=android/app/src/main/AndroidManifest.xml
+          if ! grep -q "WRITE_CONTACTS" "$MF"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.READ_CONTACTS"/>\n    <uses-permission android:name="android.permission.WRITE_CONTACTS"/>\n    <application#' "$MF"
+          fi
+          if ! grep -q "WRITE_EXTERNAL_STORAGE" "$MF"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>\n    <application#' "$MF"
+          fi
+          if ! grep -q "requestLegacyExternalStorage" "$MF"; then
+            sed -i 's#<application\([ >]\|$\)#<application android:requestLegacyExternalStorage="true"\1#' "$MF"
+          fi
+          grep -n "uses-permission\|requestLegacyExternalStorage" "$MF" || true
+
+      - name: Install fixed debug keystore
+        run: |
+          mkdir -p ~/.android
+          cp keystore/debug.keystore ~/.android/debug.keystore
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hsn-pmt-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Publish APK as Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: hsn.pmt APK - build ${{ github.run_number }}
+          files: android/app/build/outputs/apk/debug/app-debug.apk
