@@ -19,6 +19,7 @@ window.App = window.App || {};
       return '<span style="display:inline-flex;align-items:center;gap:5px;margin:0 8px;color:#555;font-size:12.5px;direction:ltr"><span style="color:'+brand[k]+';display:inline-flex">'+A.icon(k,15)+'</span>'+A.esc(soc[k].handle)+'</span>';
     }).join('');
     var col=Object.assign({desc:'الوصف',type:'النوع',qty:'الكمية',price:'السعر',total:'الإجمالي'}, ic.columns||{}, v.columns||{});
+    var HID=v.hiddenCols||{}; function sh(k){return !HID[k];}
     var rowBg=0, rows=(v.items||[]).map(function(it,i){
       var subs=(it.subs&&it.subs.length)?it.subs:[{type:'',qty:0,unitPrice:0}];
       return subs.map(function(sb,j){
@@ -26,14 +27,14 @@ window.App = window.App || {};
         var bg=(rowBg++%2)? '#faf9f7':'#ffffff';
         var cells='';
         if(j===0){
-          cells+='<td rowspan="'+subs.length+'" style="padding:12px 10px;text-align:center;color:#9aa;width:30px;border-top:1px solid #eee">'+(i+1)+'</td>';
-          cells+='<td rowspan="'+subs.length+'" style="padding:12px 10px;font-weight:700;border-top:1px solid #eee;vertical-align:middle">'+A.esc(it.desc||'')+'</td>';
+          if(sh('num')) cells+='<td rowspan="'+subs.length+'" style="padding:12px 10px;text-align:center;color:#9aa;width:30px;border-top:1px solid #eee">'+(i+1)+'</td>';
+          if(sh('desc')) cells+='<td rowspan="'+subs.length+'" style="padding:12px 10px;font-weight:700;border-top:1px solid #eee;vertical-align:middle">'+A.esc(it.desc||'')+'</td>';
         }
         var sc=sb.currency||cur; var sym=(sc!==cur)?(' '+((A.CURRENCIES[sc]||{}).label||sc)):'';
-        cells+='<td style="padding:10px;text-align:center;color:#444">'+A.esc(sb.type||'')+'</td>'+
-          '<td style="padding:10px;text-align:center;color:#555">'+A.esc(A.groupNum(A.parseNum(sb.qty)))+'</td>'+
-          '<td style="padding:10px;text-align:center;color:#555">'+A.esc(A.groupNum(A.parseNum(sb.unitPrice))+sym)+'</td>'+
-          '<td style="padding:10px;text-align:center;font-weight:700">'+A.esc(A.groupNum(line)+sym)+'</td>';
+        if(sh('type')) cells+='<td style="padding:10px;text-align:center;color:#444">'+A.esc(sb.type||'')+'</td>';
+        if(sh('qty')) cells+='<td style="padding:10px;text-align:center;color:#555">'+A.esc(A.groupNum(A.parseNum(sb.qty)))+'</td>';
+        if(sh('price')) cells+='<td style="padding:10px;text-align:center;color:#555">'+A.esc(A.groupNum(A.parseNum(sb.unitPrice))+sym)+'</td>';
+        if(sh('total')) cells+='<td style="padding:10px;text-align:center;font-weight:700">'+A.esc(A.groupNum(line)+sym)+'</td>';
         return '<tr style="background:'+bg+'">'+cells+'</tr>';
       }).join('');
     }).join('');
@@ -73,9 +74,9 @@ window.App = window.App || {};
       '<div style="padding:22px 44px 0">'+
         '<table style="width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid #eee;border-radius:10px;overflow:hidden">'+
           '<thead><tr style="background:'+color+';color:#fff">'+
-            '<th style="padding:11px 8px;font-weight:700;width:30px">#</th><th style="padding:11px 10px;text-align:right;font-weight:700">'+A.esc(col.desc)+'</th>'+
-            '<th style="padding:11px 8px;font-weight:700">'+A.esc(col.type)+'</th><th style="padding:11px 8px;font-weight:700">'+A.esc(col.qty)+'</th>'+
-            '<th style="padding:11px 8px;font-weight:700">'+A.esc(col.price)+'</th><th style="padding:11px 8px;font-weight:700">'+A.esc(col.total)+'</th></tr></thead>'+
+            (sh('num')?'<th style="padding:11px 8px;font-weight:700;width:30px">#</th>':'')+(sh('desc')?'<th style="padding:11px 10px;text-align:right;font-weight:700">'+A.esc(col.desc)+'</th>':'')+
+            (sh('type')?'<th style="padding:11px 8px;font-weight:700">'+A.esc(col.type)+'</th>':'')+(sh('qty')?'<th style="padding:11px 8px;font-weight:700">'+A.esc(col.qty)+'</th>':'')+
+            (sh('price')?'<th style="padding:11px 8px;font-weight:700">'+A.esc(col.price)+'</th>':'')+(sh('total')?'<th style="padding:11px 8px;font-weight:700">'+A.esc(col.total)+'</th>':'')+'</tr></thead>'+
           '<tbody>'+rows+'</tbody>'+
         '</table>'+
       '</div>'+

@@ -63,6 +63,8 @@ window.App = window.App || {};
   var DEF_COLS={desc:'الوصف',type:'النوع',qty:'الكمية',price:'السعر',total:'الإجمالي'};
   function globalCols(){return Object.assign({},DEF_COLS,(A.Store.settings().invoice||{}).columns||{});}
   function colsOf(v){return Object.assign(globalCols(),v.columns||{});}
+  var COL_KEYS=['num','desc','type','qty','price','total'];
+  function hiddenCount(v){var h=v.hiddenCols||{};return COL_KEYS.filter(function(k){return h[k];}).length;}
   var QTY_PRESETS=['الكمية','عدد اللقطات','عدد الثواني','عدد الصور','عدد الساعات'];
   function renderForm(){
     var sy = keepScroll ? (window.scrollY||window.pageYOffset||0) : 0;
@@ -77,12 +79,12 @@ window.App = window.App || {};
     body+='<div class="section-title">البنود</div><div class="list" id="lines">'+linesHTML()+'</div>';
     body+='<button class="btn ghost sm" id="addLine" style="margin-top:10px">'+A.icon('plus',16)+' إضافة بند</button>';
     var cc=colsOf(v);
-    body+='<details class="card pad col-box"'+(v.columns&&JSON.stringify(colsOf(v))!==JSON.stringify(globalCols())?' open':'')+'><summary>'+A.icon('edit',16)+' عناوين أعمدة هذه الفاتورة <span class="tiny muted">(خاصة بهذه الفاتورة فقط)</span></summary>'+
+    body+='<details class="card pad col-box"'+((v.columns&&JSON.stringify(colsOf(v))!==JSON.stringify(globalCols()))||hiddenCount(v)?' open':'')+'><summary>'+A.icon('edit',16)+' أعمدة هذه الفاتورة <span class="tiny muted">(خاصة بهذه الفاتورة فقط)</span></summary>'+'<div class="field" style="margin-top:12px"><label>الأعمدة الظاهرة في الجدول</label><div class="chip-row" id="visRow">'+COL_KEYS.map(function(k){var on=!(v.hiddenCols||{})[k];return '<button type="button" class="pill vis'+(on?' pill-on':'')+'" data-vis="'+k+'">'+(on?'✓ ':'')+A.esc(k==='num'?'# الترقيم':cc[k])+'</button>';}).join('')+'</div><div class="hint">اضغط على العمود لإخفائه أو إظهاره. الإجماليات أسفل الفاتورة تبقى كما هي.</div></div>'+
       '<div class="field" style="margin-top:12px"><label>عمود الكمية</label><input class="input" id="vc_qty" value="'+A.esc(cc.qty)+'">'+
       '<div class="chip-row">'+QTY_PRESETS.map(function(p){return '<button type="button" class="pill'+(p===cc.qty?' pill-on':'')+'" data-qp="'+A.esc(p)+'">'+A.esc(p)+'</button>';}).join('')+'</div></div>'+
       '<div class="grid2"><div class="field"><label>عمود الوصف</label><input class="input" id="vc_desc" value="'+A.esc(cc.desc)+'"></div><div class="field"><label>عمود النوع</label><input class="input" id="vc_type" value="'+A.esc(cc.type)+'"></div></div>'+
       '<div class="grid2"><div class="field"><label>عمود السعر</label><input class="input" id="vc_price" value="'+A.esc(cc.price)+'"></div><div class="field"><label>عمود الإجمالي</label><input class="input" id="vc_total" value="'+A.esc(cc.total)+'"></div></div>'+
-      '<button type="button" class="btn ghost sm" id="vcReset">'+A.icon('refresh',15)+' إرجاع العناوين الافتراضية</button>'+
+      '<button type="button" class="btn ghost sm" id="vcReset">'+A.icon('refresh',15)+' إرجاع الأعمدة والعناوين الافتراضية</button>'+
     '</details>';
 
     body+='<div class="grid2" style="margin-top:14px"><div class="field"><label>خصم</label><input class="input" id="vDisc" inputmode="decimal" value="'+A.esc(v.discount||'')+'"></div><div class="field"><label>ضريبة %</label><input class="input" id="vTax" inputmode="decimal" value="'+A.esc(v.taxPct||'')+'"></div></div>';
@@ -101,7 +103,13 @@ window.App = window.App || {};
     A.$('#vIssued').onclick=function(){issued=!issued;this.classList.toggle('on',issued);};
     A.$$('[data-qp]').forEach(function(b){b.onclick=function(){A.$('#vc_qty').value=b.getAttribute('data-qp');A.$$('[data-qp]').forEach(function(x){x.classList.toggle('pill-on',x===b);});draft.columns=readCols();};});
     ['vc_qty','vc_desc','vc_type','vc_price','vc_total'].forEach(function(id){A.$('#'+id).oninput=function(){draft.columns=readCols();if(id==='vc_qty')A.$$('[data-qp]').forEach(function(x){x.classList.toggle('pill-on',x.getAttribute('data-qp')===A.$('#vc_qty').value.trim());});};});
-    A.$('#vcReset').onclick=function(){var g=globalCols();A.$('#vc_qty').value=g.qty;A.$('#vc_desc').value=g.desc;A.$('#vc_type').value=g.type;A.$('#vc_price').value=g.price;A.$('#vc_total').value=g.total;draft.columns=readCols();A.$$('[data-qp]').forEach(function(x){x.classList.toggle('pill-on',x.getAttribute('data-qp')===g.qty);});};
+    A.$$('[data-vis]').forEach(function(b){b.onclick=function(){
+      var k=b.getAttribute('data-vis'); draft.hiddenCols=Object.assign({},draft.hiddenCols||{});
+      if(!draft.hiddenCols[k] && COL_KEYS.length-hiddenCount(draft)<=1){A.toast('لازم يبقى عمود واحد على الأقل','err');return;}
+      if(draft.hiddenCols[k]) delete draft.hiddenCols[k]; else draft.hiddenCols[k]=true;
+      var on=!draft.hiddenCols[k], c=colsOf(draft); b.classList.toggle('pill-on',on); b.textContent=(on?'✓ ':'')+(k==='num'?'# الترقيم':c[k]);
+    };});
+    A.$('#vcReset').onclick=function(){draft.hiddenCols={};A.$$('[data-vis]').forEach(function(x){var k=x.getAttribute('data-vis');x.classList.add('pill-on');x.textContent='✓ '+(k==='num'?'# الترقيم':globalCols()[k]);});var g=globalCols();A.$('#vc_qty').value=g.qty;A.$('#vc_desc').value=g.desc;A.$('#vc_type').value=g.type;A.$('#vc_price').value=g.price;A.$('#vc_total').value=g.total;draft.columns=readCols();A.$$('[data-qp]').forEach(function(x){x.classList.toggle('pill-on',x.getAttribute('data-qp')===g.qty);});};
     A.$('#vShowPhone').onclick=function(){this.classList.toggle('on');draft.showClientPhone=this.classList.contains('on');};
     A.$('#autoNum').onclick=function(){collect();draft.number=A.Store.suggestInvNumber();draft.autoNumber=true;A.$('#vNum').value=draft.number;};
     A.$('#addLine').onclick=function(){collect();lineForm();};
