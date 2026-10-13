@@ -340,3 +340,7 @@ textarea.input{resize:vertical;min-height:74px}
 .col-box summary::-webkit-details-marker{display:none}
 .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .pill.pill-on{background:var(--em);color:#fff;border-color:var(--em)}
+
+/* ---------- invoice line price mode ---------- */
+.mode-seg{margin-top:8px}
+.mode-seg button{font-size:12px;padding:8px 6px}

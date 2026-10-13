@@ -23,7 +23,7 @@ window.App = window.App || {};
     var rowBg=0, rows=(v.items||[]).map(function(it,i){
       var subs=(it.subs&&it.subs.length)?it.subs:[{type:'',qty:0,unitPrice:0}];
       return subs.map(function(sb,j){
-        var line=A.parseNum(sb.qty)*A.parseNum(sb.unitPrice);
+        var line=A.lineTotal(sb);
         var bg=(rowBg++%2)? '#faf9f7':'#ffffff';
         var cells='';
         if(j===0){
@@ -32,8 +32,8 @@ window.App = window.App || {};
         }
         var sc=sb.currency||cur; var sym=(sc!==cur)?(' '+((A.CURRENCIES[sc]||{}).label||sc)):'';
         if(sh('type')) cells+='<td style="padding:10px;text-align:center;color:#444">'+A.esc(sb.type||'')+'</td>';
-        if(sh('qty')) cells+='<td style="padding:10px;text-align:center;color:#555">'+A.esc(A.groupNum(A.parseNum(sb.qty)))+'</td>';
-        if(sh('price')) cells+='<td style="padding:10px;text-align:center;color:#555">'+A.esc(A.groupNum(A.parseNum(sb.unitPrice))+sym)+'</td>';
+        if(sh('qty')) cells+='<td style="padding:10px;text-align:center;color:#555">'+((sb.manual&&!A.parseNum(sb.qty))?'—':A.esc(A.groupNum(A.parseNum(sb.qty))))+'</td>';
+        if(sh('price')) cells+='<td style="padding:10px;text-align:center;color:#555">'+((sb.manual&&!A.parseNum(sb.unitPrice))?'—':A.esc(A.groupNum(A.parseNum(sb.unitPrice))+sym))+'</td>';
         if(sh('total')) cells+='<td style="padding:10px;text-align:center;font-weight:700">'+A.esc(A.groupNum(line)+sym)+'</td>';
         return '<tr style="background:'+bg+'">'+cells+'</tr>';
       }).join('');

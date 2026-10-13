@@ -237,7 +237,7 @@ window.App = window.App || {};
     invoiceFinance:function(v){
       var cur=v.currency, sub=0, missing=false;
       (v.items||[]).forEach(function(it){ (it.subs||[]).forEach(function(s){
-        var line=A.parseNum(s.qty)*A.parseNum(s.unitPrice);
+        var line=A.lineTotal(s);
         var c=A.Store.convert(line, s.currency||cur, cur);
         if(c==null){ missing=true; } else sub+=c;
       }); });

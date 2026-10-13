@@ -26,7 +26,7 @@ window.App = window.App || {};
         '<div class="kv"><span class="k" style="font-weight:700;color:var(--ink)">الإجمالي</span><span class="v">'+A.money(f.total,v.currency)+'</span></div>'+
         kv('المدفوع',A.moneyText(f.paid,v.currency))+'<div class="kv"><span class="k">المتبقي</span><span class="v '+(f.remaining>0?'neg':'pos')+'">'+A.esc(A.moneyText(f.remaining,v.currency))+'</span></div></div>';
 
-      body+='<div class="section-title">البنود</div><div class="list">'+(v.items||[]).map(function(it){var tot=(it.subs||[]).reduce(function(a,s){return a+A.parseNum(s.qty)*A.parseNum(s.unitPrice);},0);var sub=(it.subs||[]).map(function(s){return A.esc((s.type?s.type+' — ':'')+A.groupNum(A.parseNum(s.qty))+' × '+A.groupNum(A.parseNum(s.unitPrice)));}).join('<br>');return '<div class="mini-item"><div class="grow"><div style="font-weight:600">'+A.esc(it.desc||'')+'</div><div class="s tiny muted">'+sub+'</div></div><div class="end">'+A.money(tot,v.currency)+'</div></div>';}).join('')+'</div>';
+      body+='<div class="section-title">البنود</div><div class="list">'+(v.items||[]).map(function(it){var tot=(it.subs||[]).reduce(function(a,s){return a+A.lineTotal(s);},0);var sub=(it.subs||[]).map(function(s){return A.esc((s.type?s.type+' — ':'')+(s.manual?('يدوي: '+A.groupNum(A.lineTotal(s))):(A.groupNum(A.parseNum(s.qty))+' × '+A.groupNum(A.parseNum(s.unitPrice)))));}).join('<br>');return '<div class="mini-item"><div class="grow"><div style="font-weight:600">'+A.esc(it.desc||'')+'</div><div class="s tiny muted">'+sub+'</div></div><div class="end">'+A.money(tot,v.currency)+'</div></div>';}).join('')+'</div>';
 
       body+='<div class="section-title">الدفعات</div><div class="list">'+((v.payments||[]).length?v.payments.map(function(p,i){return '<div class="mini-item"><div class="grow"><div style="font-weight:600">'+A.esc(A.moneyText(A.parseNum(p.amount),v.currency))+'</div><div class="s tiny muted">'+A.fmtDate(p.date)+(p.note?' • '+A.esc(p.note):'')+'</div></div><button class="x" data-delp="'+i+'">'+A.icon('trash',15)+'</button></div>';}).join(''):'<div class="card pad center muted tiny">لا دفعات</div>')+'</div>';
       body+='<button class="btn ghost sm" id="addP" style="margin-top:10px">'+A.icon('plus',16)+' تسجيل دفعة</button>';
@@ -147,7 +147,7 @@ window.App = window.App || {};
   function linesHTML(){
     if(!draft.items.length) return '<div class="card pad center muted tiny">لا بنود</div>';
     return draft.items.map(function(it,i){
-      var tot=(it.subs||[]).reduce(function(a,s){return a+A.parseNum(s.qty)*A.parseNum(s.unitPrice);},0);
+      var tot=(it.subs||[]).reduce(function(a,s){return a+A.lineTotal(s);},0);
       return '<div class="mini-item" data-editline="'+i+'"><div class="grow"><div style="font-weight:600">'+A.esc(it.desc||'بند')+'</div><div class="s tiny muted">'+((it.subs||[]).length)+' قسم</div></div><div class="end" style="font-weight:700">'+A.esc(A.groupNum(tot))+'</div><button class="x" data-delline="'+i+'">'+A.icon('trash',15)+'</button></div>';
     }).join('');
   }
@@ -156,10 +156,14 @@ window.App = window.App || {};
     var dcur=draft.currency||A.Store.base();
     var item = (idx!=null)? JSON.parse(JSON.stringify(draft.items[idx])) : {desc:'', subs:[{type:'',qty:1,unitPrice:'',currency:dcur}]};
     if(!item.subs||!item.subs.length) item.subs=[{type:'',qty:1,unitPrice:'',currency:dcur}];
-    function readSubs(sh){ item.desc=(A.$('#lDesc',sh)||{value:item.desc}).value; item.subs.forEach(function(s,i){ var t=A.$('#st_'+i,sh),q=A.$('#sq_'+i,sh),p=A.$('#sp_'+i,sh),c=A.$('#sc_'+i,sh); if(t)s.type=t.value; if(q)s.qty=A.parseNum(q.value); if(p)s.unitPrice=A.parseNum(p.value); if(c)s.currency=c.value; }); }
+    function readSubs(sh){ item.desc=(A.$('#lDesc',sh)||{value:item.desc}).value; item.subs.forEach(function(s,i){ var t=A.$('#st_'+i,sh),q=A.$('#sq_'+i,sh),p=A.$('#sp_'+i,sh),c=A.$('#sc_'+i,sh); if(t)s.type=t.value; if(q)s.qty=A.parseNum(q.value); if(p)s.unitPrice=A.parseNum(p.value); if(c)s.currency=c.value; var am=A.$('#sa_'+i,sh); if(am)s.amount=A.parseNum(am.value); }); }
     function render(){
-      var subsHTML=item.subs.map(function(s,i){var line=A.parseNum(s.qty)*A.parseNum(s.unitPrice);
-        return '<div class="sub-edit"><input class="input" id="st_'+i+'" placeholder="'+A.esc(colsOf(draft).type)+'" value="'+A.esc(s.type||'')+'" style="margin-bottom:8px"><div class="grid3"><input class="input spn" id="sq_'+i+'" inputmode="decimal" placeholder="'+A.esc(colsOf(draft).qty)+'" value="'+A.esc(s.qty||'')+'"><input class="input spn" id="sp_'+i+'" inputmode="decimal" placeholder="'+A.esc(colsOf(draft).price)+'" value="'+A.esc(s.unitPrice||'')+'">'+curSel('sc_'+i,s.currency||dcur)+'</div><div class="sub-foot"><span>الإجمالي: '+A.esc(A.groupNum(line)+' '+((A.CURRENCIES[s.currency||dcur]||{}).label||''))+'</span>'+(item.subs.length>1?'<button class="x" data-delsub="'+i+'">'+A.icon('trash',14)+'</button>':'')+'</div></div>';
+      var cc=colsOf(draft);
+      var subsHTML=item.subs.map(function(s,i){var line=A.lineTotal(s);
+        return '<div class="sub-edit"><input class="input" id="st_'+i+'" placeholder="'+A.esc(cc.type)+'" value="'+A.esc(s.type||'')+'" style="margin-bottom:8px"><div class="grid3"><input class="input spn" id="sq_'+i+'" inputmode="decimal" placeholder="'+A.esc(cc.qty)+'" value="'+A.esc(s.qty||'')+'"><input class="input spn" id="sp_'+i+'" inputmode="decimal" placeholder="'+A.esc(cc.price)+'" value="'+A.esc(s.unitPrice||'')+'">'+curSel('sc_'+i,s.currency||dcur)+'</div>'+
+          '<div class="seg mode-seg" data-mode="'+i+'"><button type="button" data-m="auto" class="'+(s.manual?'':'on')+'">تلقائي ('+A.esc(cc.qty)+' × '+A.esc(cc.price)+')</button><button type="button" data-m="manual" class="'+(s.manual?'on':'')+'">يدوي</button></div>'+
+          '<div class="field man-wrap'+(s.manual?'':' hidden')+'" style="margin:8px 0 0"><label>'+A.esc(cc.total)+' (يدوي)</label><input class="input spn" id="sa_'+i+'" inputmode="decimal" placeholder="اكتب المبلغ" value="'+A.esc(s.amount||'')+'"></div>'+
+          '<div class="sub-foot"><span>'+A.esc(cc.total)+': '+A.esc(A.groupNum(line)+' '+((A.CURRENCIES[s.currency||dcur]||{}).label||''))+'</span>'+(item.subs.length>1?'<button class="x" data-delsub="'+i+'">'+A.icon('trash',14)+'</button>':'')+'</div></div>';
       }).join('');
       var sh=A.sheet('<h2>'+(idx!=null?'تعديل بند':'بند جديد')+'</h2>'+
         '<div class="field"><label>الوصف</label><input class="input" id="lDesc" placeholder="مثال: Main Commercial" value="'+A.esc(item.desc||'')+'"></div>'+
@@ -168,12 +172,17 @@ window.App = window.App || {};
         '<button class="btn" id="lSave" style="margin-top:14px">حفظ البند</button>');
       A.$('#addSub',sh).onclick=function(){readSubs(sh);item.subs.push({type:'',qty:1,unitPrice:'',currency:dcur});render();};
       A.$$('[data-delsub]',sh).forEach(function(el){el.onclick=function(){readSubs(sh);item.subs.splice(+el.getAttribute('data-delsub'),1);render();};});
-      function updFoot(i,sh){var line=A.parseNum((A.$('#sq_'+i,sh)||{}).value)*A.parseNum((A.$('#sp_'+i,sh)||{}).value);var c=(A.$('#sc_'+i,sh)||{}).value;var lbl=(A.CURRENCIES[c]||{}).label||'';var foot=A.$('#sq_'+i,sh).closest('.sub-edit').querySelector('.sub-foot span');if(foot)foot.textContent='الإجمالي: '+A.groupNum(line)+' '+lbl;}
+      function updFoot(i,sh){var s=item.subs[i];var line=s.manual?A.parseNum((A.$('#sa_'+i,sh)||{}).value):A.parseNum((A.$('#sq_'+i,sh)||{}).value)*A.parseNum((A.$('#sp_'+i,sh)||{}).value);var c=(A.$('#sc_'+i,sh)||{}).value;var lbl=(A.CURRENCIES[c]||{}).label||'';var foot=A.$('#sq_'+i,sh).closest('.sub-edit').querySelector('.sub-foot span');if(foot)foot.textContent=cc.total+': '+A.groupNum(line)+' '+lbl;}
+      A.$$('.mode-seg',sh).forEach(function(sg){var i=+sg.getAttribute('data-mode');sg.onclick=function(e){var b=e.target.closest('[data-m]');if(!b)return;var man=b.getAttribute('data-m')==='manual';item.subs[i].manual=man;
+        sg.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);});
+        var wrap=sg.parentNode.querySelector('.man-wrap');wrap.classList.toggle('hidden',!man);
+        var am=A.$('#sa_'+i,sh); if(man&&am&&!am.value){var auto=A.parseNum(A.$('#sq_'+i,sh).value)*A.parseNum(A.$('#sp_'+i,sh).value);if(auto)am.value=auto;am.focus();}
+        updFoot(i,sh);};});
       A.$$('.spn',sh).forEach(function(inp){inp.oninput=function(){updFoot(inp.id.split('_')[1],sh);};});
       item.subs.forEach(function(s,i){var sc=A.$('#sc_'+i,sh);if(sc)sc.onchange=function(){updFoot(i,sh);};});
       A.$('#lSave',sh).onclick=function(){
         readSubs(sh); item.desc=(A.$('#lDesc',sh).value||'').trim();
-        item.subs=item.subs.filter(function(s){return A.parseNum(s.qty)||A.parseNum(s.unitPrice)||(s.type||'').trim();});
+        item.subs=item.subs.filter(function(s){return A.parseNum(s.qty)||A.parseNum(s.unitPrice)||(s.manual&&A.parseNum(s.amount))||(s.type||'').trim();});
         if(!item.subs.length){A.toast('أضف قسمًا واحدًا على الأقل','err');return;}
         if(idx!=null)draft.items[idx]=item; else draft.items.push(item);
         A.closeSheet();keepScroll=true;renderForm();
