@@ -18,7 +18,7 @@ window.App = window.App || {};
     var socHtml=['instagram','tiktok','facebook','whatsapp'].filter(function(k){return soc[k]&&soc[k].on&&soc[k].handle;}).map(function(k){
       return '<span style="display:inline-flex;align-items:center;gap:5px;margin:0 8px;color:#555;font-size:12.5px;direction:ltr"><span style="color:'+brand[k]+';display:inline-flex">'+A.icon(k,15)+'</span>'+A.esc(soc[k].handle)+'</span>';
     }).join('');
-    var col=Object.assign({desc:'الوصف',type:'النوع',qty:'الكمية',price:'السعر',total:'الإجمالي'}, ic.columns||{});
+    var col=Object.assign({desc:'الوصف',type:'النوع',qty:'الكمية',price:'السعر',total:'الإجمالي'}, ic.columns||{}, v.columns||{});
     var rowBg=0, rows=(v.items||[]).map(function(it,i){
       var subs=(it.subs&&it.subs.length)?it.subs:[{type:'',qty:0,unitPrice:0}];
       return subs.map(function(sb,j){

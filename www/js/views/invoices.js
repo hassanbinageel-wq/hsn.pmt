@@ -49,6 +49,7 @@ window.App = window.App || {};
       else{
         draft={number:A.Store.suggestInvNumber(),title:'',date:A.todayISO(),dueDate:'',currency:A.Store.base(),
                items:[],discount:0,taxPct:0,payments:[],status:'draft',notes:'',clientId:'',autoNumber:true};
+        draft.columns=globalCols();
         if(fromWork){
           draft.clientId=fromWork.clientId; draft.currency=fromWork.agreedCurrency||A.Store.base(); draft.workId=fromWork.id;
           draft.title=fromWork.name||'';
@@ -59,6 +60,10 @@ window.App = window.App || {};
     }
   };
 
+  var DEF_COLS={desc:'الوصف',type:'النوع',qty:'الكمية',price:'السعر',total:'الإجمالي'};
+  function globalCols(){return Object.assign({},DEF_COLS,(A.Store.settings().invoice||{}).columns||{});}
+  function colsOf(v){return Object.assign(globalCols(),v.columns||{});}
+  var QTY_PRESETS=['الكمية','عدد اللقطات','عدد الثواني','عدد الصور','عدد الساعات'];
   function renderForm(){
     var sy = keepScroll ? (window.scrollY||window.pageYOffset||0) : 0;
     var v=draft, clients=A.Store.clients(), isEdit=!!v.id, f=A.Store.invoiceFinance(v);
@@ -71,6 +76,14 @@ window.App = window.App || {};
 
     body+='<div class="section-title">البنود</div><div class="list" id="lines">'+linesHTML()+'</div>';
     body+='<button class="btn ghost sm" id="addLine" style="margin-top:10px">'+A.icon('plus',16)+' إضافة بند</button>';
+    var cc=colsOf(v);
+    body+='<details class="card pad col-box"'+(v.columns&&JSON.stringify(colsOf(v))!==JSON.stringify(globalCols())?' open':'')+'><summary>'+A.icon('edit',16)+' عناوين أعمدة هذه الفاتورة <span class="tiny muted">(خاصة بهذه الفاتورة فقط)</span></summary>'+
+      '<div class="field" style="margin-top:12px"><label>عمود الكمية</label><input class="input" id="vc_qty" value="'+A.esc(cc.qty)+'">'+
+      '<div class="chip-row">'+QTY_PRESETS.map(function(p){return '<button type="button" class="pill'+(p===cc.qty?' pill-on':'')+'" data-qp="'+A.esc(p)+'">'+A.esc(p)+'</button>';}).join('')+'</div></div>'+
+      '<div class="grid2"><div class="field"><label>عمود الوصف</label><input class="input" id="vc_desc" value="'+A.esc(cc.desc)+'"></div><div class="field"><label>عمود النوع</label><input class="input" id="vc_type" value="'+A.esc(cc.type)+'"></div></div>'+
+      '<div class="grid2"><div class="field"><label>عمود السعر</label><input class="input" id="vc_price" value="'+A.esc(cc.price)+'"></div><div class="field"><label>عمود الإجمالي</label><input class="input" id="vc_total" value="'+A.esc(cc.total)+'"></div></div>'+
+      '<button type="button" class="btn ghost sm" id="vcReset">'+A.icon('refresh',15)+' إرجاع العناوين الافتراضية</button>'+
+    '</details>';
 
     body+='<div class="grid2" style="margin-top:14px"><div class="field"><label>خصم</label><input class="input" id="vDisc" inputmode="decimal" value="'+A.esc(v.discount||'')+'"></div><div class="field"><label>ضريبة %</label><input class="input" id="vTax" inputmode="decimal" value="'+A.esc(v.taxPct||'')+'"></div></div>';
 
@@ -86,6 +99,9 @@ window.App = window.App || {};
 
     var issued=v.status!=='draft';
     A.$('#vIssued').onclick=function(){issued=!issued;this.classList.toggle('on',issued);};
+    A.$$('[data-qp]').forEach(function(b){b.onclick=function(){A.$('#vc_qty').value=b.getAttribute('data-qp');A.$$('[data-qp]').forEach(function(x){x.classList.toggle('pill-on',x===b);});draft.columns=readCols();};});
+    ['vc_qty','vc_desc','vc_type','vc_price','vc_total'].forEach(function(id){A.$('#'+id).oninput=function(){draft.columns=readCols();if(id==='vc_qty')A.$$('[data-qp]').forEach(function(x){x.classList.toggle('pill-on',x.getAttribute('data-qp')===A.$('#vc_qty').value.trim());});};});
+    A.$('#vcReset').onclick=function(){var g=globalCols();A.$('#vc_qty').value=g.qty;A.$('#vc_desc').value=g.desc;A.$('#vc_type').value=g.type;A.$('#vc_price').value=g.price;A.$('#vc_total').value=g.total;draft.columns=readCols();A.$$('[data-qp]').forEach(function(x){x.classList.toggle('pill-on',x.getAttribute('data-qp')===g.qty);});};
     A.$('#vShowPhone').onclick=function(){this.classList.toggle('on');draft.showClientPhone=this.classList.contains('on');};
     A.$('#autoNum').onclick=function(){collect();draft.number=A.Store.suggestInvNumber();draft.autoNumber=true;A.$('#vNum').value=draft.number;};
     A.$('#addLine').onclick=function(){collect();lineForm();};
@@ -110,7 +126,9 @@ window.App = window.App || {};
   }
   function totalsHTML(){var v=draft,f=A.Store.invoiceFinance(v);return kv('المجموع',A.moneyText(f.sub,v.currency))+(f.discount>0?kv('الخصم','- '+A.moneyText(f.discount,v.currency)):'')+(f.taxAmt>0?kv('الضريبة',A.moneyText(f.taxAmt,v.currency)):'')+'<div class="kv"><span class="k" style="font-weight:700;color:var(--ink)">الإجمالي</span><span class="v">'+A.money(f.total,v.currency)+'</span></div>';}
 
+  function readCols(){var g=globalCols();function v(id,k){var el=A.$('#'+id);var s=el?el.value.trim():'';return s||g[k];}return {desc:v('vc_desc','desc'),type:v('vc_type','type'),qty:v('vc_qty','qty'),price:v('vc_price','price'),total:v('vc_total','total')};}
   function collect(){
+    if(A.$('#vc_qty')) draft.columns=readCols();
     draft.title=A.$('#vTitle')?A.$('#vTitle').value.trim():draft.title;
     draft.clientId=A.$('#vClient').value;
     var newNum=A.$('#vNum').value.trim(); if(newNum!==draft.number)draft.autoNumber=false; draft.number=newNum;
@@ -133,11 +151,11 @@ window.App = window.App || {};
     function readSubs(sh){ item.desc=(A.$('#lDesc',sh)||{value:item.desc}).value; item.subs.forEach(function(s,i){ var t=A.$('#st_'+i,sh),q=A.$('#sq_'+i,sh),p=A.$('#sp_'+i,sh),c=A.$('#sc_'+i,sh); if(t)s.type=t.value; if(q)s.qty=A.parseNum(q.value); if(p)s.unitPrice=A.parseNum(p.value); if(c)s.currency=c.value; }); }
     function render(){
       var subsHTML=item.subs.map(function(s,i){var line=A.parseNum(s.qty)*A.parseNum(s.unitPrice);
-        return '<div class="sub-edit"><input class="input" id="st_'+i+'" placeholder="النوع" value="'+A.esc(s.type||'')+'" style="margin-bottom:8px"><div class="grid3"><input class="input spn" id="sq_'+i+'" inputmode="decimal" placeholder="الكمية" value="'+A.esc(s.qty||'')+'"><input class="input spn" id="sp_'+i+'" inputmode="decimal" placeholder="السعر" value="'+A.esc(s.unitPrice||'')+'">'+curSel('sc_'+i,s.currency||dcur)+'</div><div class="sub-foot"><span>الإجمالي: '+A.esc(A.groupNum(line)+' '+((A.CURRENCIES[s.currency||dcur]||{}).label||''))+'</span>'+(item.subs.length>1?'<button class="x" data-delsub="'+i+'">'+A.icon('trash',14)+'</button>':'')+'</div></div>';
+        return '<div class="sub-edit"><input class="input" id="st_'+i+'" placeholder="'+A.esc(colsOf(draft).type)+'" value="'+A.esc(s.type||'')+'" style="margin-bottom:8px"><div class="grid3"><input class="input spn" id="sq_'+i+'" inputmode="decimal" placeholder="'+A.esc(colsOf(draft).qty)+'" value="'+A.esc(s.qty||'')+'"><input class="input spn" id="sp_'+i+'" inputmode="decimal" placeholder="'+A.esc(colsOf(draft).price)+'" value="'+A.esc(s.unitPrice||'')+'">'+curSel('sc_'+i,s.currency||dcur)+'</div><div class="sub-foot"><span>الإجمالي: '+A.esc(A.groupNum(line)+' '+((A.CURRENCIES[s.currency||dcur]||{}).label||''))+'</span>'+(item.subs.length>1?'<button class="x" data-delsub="'+i+'">'+A.icon('trash',14)+'</button>':'')+'</div></div>';
       }).join('');
       var sh=A.sheet('<h2>'+(idx!=null?'تعديل بند':'بند جديد')+'</h2>'+
         '<div class="field"><label>الوصف</label><input class="input" id="lDesc" placeholder="مثال: Main Commercial" value="'+A.esc(item.desc||'')+'"></div>'+
-        '<div class="section-title" style="margin-top:4px">الأقسام (النوع · الكمية · السعر · العملة)</div>'+subsHTML+
+        '<div class="section-title" style="margin-top:4px">الأقسام ('+A.esc(colsOf(draft).type)+' · '+A.esc(colsOf(draft).qty)+' · '+A.esc(colsOf(draft).price)+' · العملة)</div>'+subsHTML+
         '<button class="btn soft sm" id="addSub" style="margin-top:8px">'+A.icon('plus',15)+' إضافة قسم</button>'+
         '<button class="btn" id="lSave" style="margin-top:14px">حفظ البند</button>');
       A.$('#addSub',sh).onclick=function(){readSubs(sh);item.subs.push({type:'',qty:1,unitPrice:'',currency:dcur});render();};

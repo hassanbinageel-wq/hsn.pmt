@@ -333,3 +333,10 @@ textarea.input{resize:vertical;min-height:74px}
 
 /* ---------- work notes ---------- */
 .notes-box{white-space:pre-wrap;line-height:1.8;font-size:14px;color:var(--ink-2)}
+
+/* ---------- per-invoice column labels ---------- */
+.col-box{margin-top:12px}
+.col-box summary{cursor:pointer;font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;list-style:none;flex-wrap:wrap}
+.col-box summary::-webkit-details-marker{display:none}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pill.pill-on{background:var(--em);color:#fff;border-color:var(--em)}

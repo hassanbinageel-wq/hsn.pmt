@@ -84,7 +84,7 @@ window.App = window.App || {};
       body+=fld2('بيانات التحويل / وسيلة الدفع','iTransfer',ic.transferInfo);
       body+='<div class="section-title">حسابات التواصل (تظهر في الفاتورة)</div><div class="hint" style="margin:-4px 4px 8px">اكتب اسم الحساب، والمفتاح لإظهار/إخفاء الأيقونة.</div>';
       body+=SOC.map(function(r){return socRow(r[0],r[1],r[2]);}).join('');
-      body+='<div class="section-title">عناوين أعمدة جدول الفاتورة</div>';
+      body+='<div class="section-title">عناوين الأعمدة الافتراضية</div><div class="hint" style="margin:-4px 4px 8px">تُستخدم للفواتير الجديدة. وتقدر تغيّرها لكل فاتورة على حدة من داخل الفاتورة نفسها.</div>';
       body+='<div class="grid2">'+colFld('عمود الوصف','col_desc',ic.columns.desc)+colFld('عمود النوع','col_type',ic.columns.type)+'</div>';
       body+='<div class="grid2">'+colFld('عمود الكمية','col_qty',ic.columns.qty)+colFld('عمود السعر','col_price',ic.columns.price)+'</div>';
       body+=colFld('عمود الإجمالي','col_total',ic.columns.total);
