@@ -123,6 +123,7 @@ window.App = window.App || {};
 
     banks:function(){
       var B=A.Store.settings().banks=A.Store.settings().banks||{holder:'',list:[]};
+      if(B.style&&B.style!=='cards'&&B.style!=='compact')B.style=(B.style==='table'?'compact':'cards');
       var body='<div class="notice info">'+A.icon('info',18)+'<div>تظهر في أسفل الفاتورة فوق «شكرًا لتعاملكم معنا». تقدر تخفي أي بنك من هنا، أو تختار البنوك لكل فاتورة من داخلها.</div></div>';
       body+='<div class="field"><label>اسم الحساب (موحّد لكل البنوك)</label><input class="input" id="bHolder" placeholder="مثال: حسن جمال الليل" value="'+A.esc(B.holder||'')+'"></div>';
       body+='<div class="field"><label>شكل عرض الحسابات في الفاتورة</label><div class="seg" id="bStyle">'+A.PDF.BANK_STYLES.map(function(s){return '<button data-st="'+s[0]+'" class="'+((B.style||'cards')===s[0]?'on':'')+'">'+s[1]+'</button>';}).join('')+'</div><div class="hint">الشكل الافتراضي، وتقدر تغيّره لكل فاتورة من داخلها.</div></div>';

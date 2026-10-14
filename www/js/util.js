@@ -15,7 +15,7 @@ window.App = window.App || {};
     OMR:{code:'OMR',label:'ر.ع',ar:'ريال عماني'},
     YER:{code:'YER',label:'ر.ي',ar:'ريال يمني'}
   };
-  A.CUR_LIST = ['USD','SAR','AED','QAR','OMR','YER'];
+  A.CUR_LIST = ['USD','SAR','YER'];
   // invoice sub-line total: manual amount, or quantity × unit price
   A.lineTotal = function(s){ if(!s) return 0; return s.manual ? A.parseNum(s.amount) : A.parseNum(s.qty)*A.parseNum(s.unitPrice); };
   A.worksWord = function(n){ n=+n||0; if(n===1)return 'عمل واحد'; if(n===2)return 'عملان'; return n+' '+((n>=3&&n<=10)?'أعمال':'عمل'); };

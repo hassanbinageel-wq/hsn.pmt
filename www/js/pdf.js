@@ -21,22 +21,25 @@ window.App = window.App || {};
     var bankHtml=A.PDF.banksHTML(v,color);
     var col=Object.assign({desc:'الوصف',type:'النوع',qty:'الكمية',price:'السعر',total:'الإجمالي'}, ic.columns||{}, v.columns||{});
     var HID=v.hiddenCols||{}; function sh(k){return !HID[k];}
-    var rowBg=0, rows=(v.items||[]).map(function(it,i){
+    // shading is per item (not per row) and painted on each cell, so a multi-part description cell is never covered
+    var rows=(v.items||[]).map(function(it,i){
       var subs=(it.subs&&it.subs.length)?it.subs:[{type:'',qty:0,unitPrice:0}];
+      var bg=(i%2)?'#faf9f7':'#ffffff';
       return subs.map(function(sb,j){
         var line=A.lineTotal(sb);
-        var bg=(rowBg++%2)? '#faf9f7':'#ffffff';
+        var top=(j===0?'border-top:1px solid #eee;':'border-top:1px dashed #f0f0ee;');
+        var C=function(extra){return '<td style="background:'+bg+';'+top+extra+'">';};
         var cells='';
         if(j===0){
-          if(sh('num')) cells+='<td rowspan="'+subs.length+'" style="padding:12px 10px;text-align:center;color:#9aa;width:30px;border-top:1px solid #eee">'+(i+1)+'</td>';
-          if(sh('desc')) cells+='<td rowspan="'+subs.length+'" style="padding:12px 10px;font-weight:700;border-top:1px solid #eee;vertical-align:middle">'+A.esc(it.desc||'')+'</td>';
+          if(sh('num')) cells+='<td rowspan="'+subs.length+'" style="background:'+bg+';padding:12px 10px;text-align:center;color:#9aa;width:30px;border-top:1px solid #eee;vertical-align:middle">'+(i+1)+'</td>';
+          if(sh('desc')) cells+='<td rowspan="'+subs.length+'" style="background:'+bg+';padding:12px 10px;font-weight:700;border-top:1px solid #eee;vertical-align:middle">'+A.esc(it.desc||'')+'</td>';
         }
         var sc=sb.currency||cur; var sym=(sc!==cur)?(' '+((A.CURRENCIES[sc]||{}).label||sc)):'';
-        if(sh('type')) cells+='<td style="padding:10px;text-align:center;color:#444">'+A.esc(sb.type||'')+'</td>';
-        if(sh('qty')) cells+='<td style="padding:10px;text-align:center;color:#555">'+((sb.manual&&!A.parseNum(sb.qty))?'—':A.esc(A.groupNum(A.parseNum(sb.qty))))+'</td>';
-        if(sh('price')) cells+='<td style="padding:10px;text-align:center;color:#555">'+((sb.manual&&!A.parseNum(sb.unitPrice))?'—':A.esc(A.groupNum(A.parseNum(sb.unitPrice))+sym))+'</td>';
-        if(sh('total')) cells+='<td style="padding:10px;text-align:center;font-weight:700">'+A.esc(A.groupNum(line)+sym)+'</td>';
-        return '<tr style="background:'+bg+'">'+cells+'</tr>';
+        if(sh('type')) cells+=C('padding:10px;text-align:center;color:#444')+A.esc(sb.type||'')+'</td>';
+        if(sh('qty')) cells+=C('padding:10px;text-align:center;color:#555')+((sb.manual&&!A.parseNum(sb.qty))?'—':A.esc(A.groupNum(A.parseNum(sb.qty))))+'</td>';
+        if(sh('price')) cells+=C('padding:10px;text-align:center;color:#555')+((sb.manual&&!A.parseNum(sb.unitPrice))?'—':A.esc(A.groupNum(A.parseNum(sb.unitPrice))+sym))+'</td>';
+        if(sh('total')) cells+=C('padding:10px;text-align:center;font-weight:700')+A.esc(A.groupNum(line)+sym)+'</td>';
+        return '<tr>'+cells+'</tr>';
       }).join('');
     }).join('');
     var payRows=(v.payments||[]).map(function(p){return '<tr><td style="padding:6px 4px;color:#777">'+A.fmtDate(p.date)+'</td><td style="padding:6px 4px;color:#777">'+A.esc(p.note||'دفعة')+'</td><td style="padding:6px 4px;text-align:left;font-weight:600">'+A.esc(A.moneyText(A.parseNum(p.amount),cur))+'</td></tr>';}).join('');
@@ -53,7 +56,7 @@ window.App = window.App || {};
           )+
         '</div>'+
         '<div style="text-align:left">'+
-          '<div style="font-size:30px;font-weight:700;color:'+color+';letter-spacing:1px">فاتورة</div>'+
+          '<div style="font-size:30px;font-weight:700;color:'+color+'">فاتورة</div>'+
           '<div style="color:#666;font-size:15px;margin-top:4px;font-weight:600">'+A.esc(v.number||'')+'</div>'+
         '</div>'+
       '</div>'+
@@ -118,12 +121,13 @@ window.App = window.App || {};
       if(Array.isArray(v.bankIds)) return list.filter(function(k){return v.bankIds.indexOf(k.id)>=0;});
       return list.filter(function(k){return k.on!==false;});
     },
-    BANK_STYLES:[['cards','بطاقات'],['table','جدول'],['compact','مختصر'],['band','شريط ملوّن']],
+    BANK_STYLES:[['cards','بطاقات'],['compact','مختصر']],
     banksHTML:function(v,color,styleOverride){
       var B=(A.Store.settings().banks)||{}, banks=this.invoiceBanks(v);
       if(!banks.length) return '';
       var style=styleOverride||v.bankStyle||B.style||'cards';
-      var esc=A.esc, NUM='direction:ltr;unicode-bidi:isolate;letter-spacing:.4px;word-break:break-all';
+      if(style==='table')style='compact'; else if(style!=='compact')style='cards'; // only two layouts kept
+      var esc=A.esc, NUM='direction:ltr;unicode-bidi:isolate;word-break:break-all';
       function accs(k){return (k.accounts||[]).filter(function(a){return (a.number||'').trim();});}
       function curName(a){return a.currency?((A.CURRENCIES[a.currency]||{}).ar||a.currency):'';}
       function logo(k,h){return k.logo?'<img src="'+k.logo+'" style="height:'+h+'px;max-width:'+(h*2.7)+'px;object-fit:contain;flex:none">':'';}
@@ -170,7 +174,7 @@ window.App = window.App || {};
     invoiceHTML:invoiceHTML,
     build:function(v){
       var stage=document.createElement('div'); stage.className='pdf-stage';
-      stage.innerHTML=invoiceHTML(v); document.body.appendChild(stage);
+      stage.innerHTML=invoiceHTML(v).replace(/letter-spacing:[^;"]*;?/g,''); document.body.appendChild(stage);
       var node=stage.firstChild;
       return html2canvas(node,{scale:2, useCORS:true, backgroundColor:'#ffffff', logging:false})
         .then(function(canvas){
