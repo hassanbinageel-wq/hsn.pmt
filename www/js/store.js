@@ -11,6 +11,7 @@ window.App = window.App || {};
         theme:'auto',
         rates:{usdToSar:3.75, usdToAed:3.6725, usdToQar:3.64, usdToOmr:0.385, usdToYer:250, updatedAt:null},
         home:{cover:'', title:'hsn.pmt'},
+        banks:{holder:'', list:[]},
         business:{name:'hsn.pmt', logo:'', stamp:'', phone:'', address:'', email:'', extra:''},
         invoice:{headerText:'', footerText:'شكراً لتعاملكم معنا', paymentTerms:'', transferInfo:'', color:'#0b110e',
                  numbering:'continuous', prefix:'INV-', pad:4, nextNumber:1, yearCounters:{},
@@ -268,6 +269,7 @@ window.App = window.App || {};
     v.settings=Object.assign({},d.settings,v.settings||{});
     v.settings.rates=Object.assign({},d.settings.rates,v.settings.rates||{});
     v.settings.home=Object.assign({},d.settings.home,v.settings.home||{});
+    v.settings.banks=Object.assign({holder:'',list:[]},v.settings.banks||{}); if(!Array.isArray(v.settings.banks.list))v.settings.banks.list=[];
     v.settings.business=Object.assign({},d.settings.business,v.settings.business||{});
     v.settings.invoice=Object.assign({},d.settings.invoice,v.settings.invoice||{});
     var ds=d.settings.invoice.socials, cs=v.settings.invoice.socials||{};

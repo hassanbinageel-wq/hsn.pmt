@@ -18,6 +18,7 @@ window.App = window.App || {};
     var socHtml=['instagram','tiktok','facebook','whatsapp'].filter(function(k){return soc[k]&&soc[k].on&&soc[k].handle;}).map(function(k){
       return '<span style="display:inline-flex;align-items:center;gap:5px;margin:0 8px;color:#555;font-size:12.5px;direction:ltr"><span style="color:'+brand[k]+';display:inline-flex">'+A.icon(k,15)+'</span>'+A.esc(soc[k].handle)+'</span>';
     }).join('');
+    var bankHtml=A.PDF.banksHTML(v,color);
     var col=Object.assign({desc:'الوصف',type:'النوع',qty:'الكمية',price:'السعر',total:'الإجمالي'}, ic.columns||{}, v.columns||{});
     var HID=v.hiddenCols||{}; function sh(k){return !HID[k];}
     var rowBg=0, rows=(v.items||[]).map(function(it,i){
@@ -42,7 +43,7 @@ window.App = window.App || {};
     function totRow(lbl,val,strong){return '<div style="display:flex;justify-content:space-between;padding:'+(strong?'11px 14px':'7px 14px')+';'+(strong?'background:'+color+';color:#fff;border-radius:9px;margin-top:8px;font-size:16px':'font-size:14px;color:#444')+'"><span>'+lbl+'</span><b style="font-variant-numeric:tabular-nums">'+val+'</b></div>';}
 
     return ''+
-    '<div style="width:794px;min-height:1118px;background:#fff;color:#1a1a1a;font-family:Tajawal,sans-serif;direction:rtl;box-sizing:border-box;position:relative">'+
+    '<div style="width:794px;min-height:1118px;background:#fff;color:#1a1a1a;font-family:Tajawal,sans-serif;direction:rtl;box-sizing:border-box;position:relative;display:flex;flex-direction:column">'+
       '<div style="height:9px;background:'+color+'"></div>'+
       '<div style="padding:32px 44px 0;display:flex;justify-content:space-between;align-items:center;gap:16px">'+
         '<div style="text-align:right">'+
@@ -99,15 +100,45 @@ window.App = window.App || {};
         '</div>'+
         (b.stamp?'<img src="'+b.stamp+'" style="max-height:120px;max-width:150px;opacity:.95">':'')+
       '</div>'+
-      '<div style="position:absolute;bottom:0;right:0;left:0;border-top:2px solid '+color+';margin:0 44px;padding:14px 0;text-align:center;color:#888;font-size:12.5px">'+
+      '<div style="margin-top:auto">'+bankHtml+
+      '<div style="border-top:2px solid '+color+';margin:0 44px;padding:14px 0;text-align:center;color:#888;font-size:12.5px">'+
         (ic.footerText?'<div style="font-weight:600;color:#555">'+A.esc(ic.footerText)+'</div>':'')+
         (socHtml?'<div style="margin-top:7px;display:flex;justify-content:center;flex-wrap:wrap;align-items:center">'+socHtml+'</div>':'')+
         ([b.phone,b.email,b.address].filter(Boolean).length?'<div style="margin-top:6px">'+[b.phone,b.email,b.address].filter(Boolean).map(A.esc).join(' • ')+'</div>':'')+
-      '</div>'+
+      '</div></div>'+
     '</div>';
   }
 
   A.PDF={
+    // which banks show on an invoice: none if hidden, else the invoice's own selection, else banks enabled in settings
+    invoiceBanks:function(v){
+      var B=(A.Store.settings().banks)||{list:[]};
+      if(v.showBanks===false) return [];
+      var list=(B.list||[]).filter(function(k){return (k.accounts||[]).some(function(a){return (a.number||'').trim();});});
+      if(Array.isArray(v.bankIds)) return list.filter(function(k){return v.bankIds.indexOf(k.id)>=0;});
+      return list.filter(function(k){return k.on!==false;});
+    },
+    banksHTML:function(v,color){
+      var B=(A.Store.settings().banks)||{}, banks=this.invoiceBanks(v);
+      if(!banks.length) return '';
+      var cards=banks.map(function(k){
+        var accs=(k.accounts||[]).filter(function(a){return (a.number||'').trim();});
+        var rows=accs.map(function(a){var c=A.CURRENCIES[a.currency]||{ar:a.currency||''};
+          return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;border-top:1px dashed #e6ebe8">'+
+            '<span style="color:#666;font-size:11.5px;white-space:nowrap">'+A.esc(c.ar||'')+'</span>'+
+            '<b style="direction:ltr;unicode-bidi:isolate;font-size:12.5px;letter-spacing:.4px;word-break:break-all;text-align:left">'+A.esc(a.number)+'</b></div>';}).join('');
+        return '<div style="flex:0 0 calc(50% - 6px);box-sizing:border-box;border:1px solid #e6ebe8;border-radius:10px;padding:9px 12px;background:#fbfcfb">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
+            (k.logo?'<img src="'+k.logo+'" style="height:26px;max-width:70px;object-fit:contain">':'')+
+            '<b style="font-size:13px">'+A.esc(k.name||'')+'</b></div>'+rows+'</div>';
+      }).join('');
+      return '<div style="margin:0 44px 14px">'+
+        '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px">'+
+          '<b style="font-size:14px;color:'+color+'">حساباتنا البنكية</b>'+
+          ((B.holder||'').trim()?'<span style="font-size:12.5px;color:#555">اسم الحساب: <b style="color:#1a1a1a">'+A.esc(B.holder)+'</b></span>':'')+
+        '</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:12px">'+cards+'</div></div>';
+    },
     invoiceHTML:invoiceHTML,
     build:function(v){
       var stage=document.createElement('div'); stage.className='pdf-stage';

@@ -344,3 +344,16 @@ textarea.input{resize:vertical;min-height:74px}
 /* ---------- invoice line price mode ---------- */
 .mode-seg{margin-top:8px}
 .mode-seg button{font-size:12px;padding:8px 6px}
+
+/* ---------- bank accounts ---------- */
+.bank-row .track{width:46px;height:27px;border-radius:20px;background:var(--line);position:relative;transition:.18s;flex:none;cursor:pointer}
+.bank-row .track.on{background:var(--em)}
+.bank-row .track::after{content:'';position:absolute;top:3px;right:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.bank-row .track.on::after{right:22px}
+.avatar.bank-logo{background:#fff;border:1px solid var(--line);padding:4px}
+.avatar.bank-logo img{max-width:100%;max-height:100%;object-fit:contain}
+.acc-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.acc-row .select{flex:0 0 120px}
+.acc-row .input{flex:1;min-width:0}
+.acc-row .x{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--neg);background:var(--neg-soft);flex:none}
+.bank-pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}

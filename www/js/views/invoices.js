@@ -92,6 +92,12 @@ window.App = window.App || {};
     body+='<div class="card pad" id="invTotals">'+totalsHTML()+'</div>';
 
     body+='<div class="field" style="margin-top:14px"><label>ملاحظات / شروط دفع للفاتورة</label><textarea class="input" id="vNotes">'+A.esc(v.notes||'')+'</textarea></div>';
+    var allBanks=((A.Store.settings().banks||{}).list||[]).filter(function(k){return (k.accounts||[]).some(function(a){return (a.number||'').trim();});});
+    if(allBanks.length){
+      var selIds=Array.isArray(v.bankIds)?v.bankIds:allBanks.filter(function(k){return k.on!==false;}).map(function(k){return k.id;});
+      body+='<div class="switch"><span>إظهار الحسابات البنكية في الفاتورة</span><div class="track '+(v.showBanks!==false?'on':'')+'" id="vShowBanks"></div></div>';
+      body+='<div id="vBankPick" class="'+(v.showBanks===false?'hidden':'')+'" style="margin:-4px 0 8px"><div class="bank-pick">'+allBanks.map(function(k){var on=selIds.indexOf(k.id)>=0;return '<button type="button" class="pill'+(on?' pill-on':'')+'" data-bk="'+k.id+'">'+(on?'✓ ':'')+A.esc(k.name)+'</button>';}).join('')+'</div><div class="hint">اختر البنوك اللي تظهر في هذه الفاتورة فقط.</div></div>';
+    }
     body+='<div class="switch"><span>إظهار رقم العميل في الفاتورة</span><div class="track '+(v.showClientPhone!==false?'on':'')+'" id="vShowPhone"></div></div>';
     body+='<div class="switch"><span>إصدار الفاتورة (غير مسودة)</span><div class="track '+(v.status!=='draft'?'on':'')+'" id="vIssued"></div></div>';
 
@@ -110,6 +116,13 @@ window.App = window.App || {};
       var on=!draft.hiddenCols[k], c=colsOf(draft); b.classList.toggle('pill-on',on); b.textContent=(on?'✓ ':'')+(k==='num'?'# الترقيم':c[k]);
     };});
     A.$('#vcReset').onclick=function(){draft.hiddenCols={};A.$$('[data-vis]').forEach(function(x){var k=x.getAttribute('data-vis');x.classList.add('pill-on');x.textContent='✓ '+(k==='num'?'# الترقيم':globalCols()[k]);});var g=globalCols();A.$('#vc_qty').value=g.qty;A.$('#vc_desc').value=g.desc;A.$('#vc_type').value=g.type;A.$('#vc_price').value=g.price;A.$('#vc_total').value=g.total;draft.columns=readCols();A.$$('[data-qp]').forEach(function(x){x.classList.toggle('pill-on',x.getAttribute('data-qp')===g.qty);});};
+    if(A.$('#vShowBanks')) A.$('#vShowBanks').onclick=function(){this.classList.toggle('on');draft.showBanks=this.classList.contains('on');A.$('#vBankPick').classList.toggle('hidden',!draft.showBanks);};
+    A.$$('[data-bk]').forEach(function(b){b.onclick=function(){
+      var ids=A.$$('[data-bk]').filter(function(x){return x.classList.contains('pill-on');}).map(function(x){return x.getAttribute('data-bk');});
+      var id=b.getAttribute('data-bk'), on=ids.indexOf(id)<0;
+      if(on) ids.push(id); else ids=ids.filter(function(x){return x!==id;});
+      draft.bankIds=ids; b.classList.toggle('pill-on',on); b.textContent=(on?'✓ ':'')+b.textContent.replace(/^✓ /,'');
+    };});
     A.$('#vShowPhone').onclick=function(){this.classList.toggle('on');draft.showClientPhone=this.classList.contains('on');};
     A.$('#autoNum').onclick=function(){collect();draft.number=A.Store.suggestInvNumber();draft.autoNumber=true;A.$('#vNum').value=draft.number;};
     A.$('#addLine').onclick=function(){collect();lineForm();};

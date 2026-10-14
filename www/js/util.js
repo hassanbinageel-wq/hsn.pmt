@@ -102,16 +102,16 @@ window.App = window.App || {};
 
   // read image file -> dataURL (compressed)
   A.pickImage = function(maxW){
-    maxW=maxW||900;
+    maxW=maxW||900; var keepAlpha=false;
     return new Promise(function(res){
       var inp=document.createElement('input');inp.type='file';inp.accept='image/*';
-      inp.onchange=function(){var f=inp.files[0];if(!f){res(null);return;}
+      inp.onchange=function(){var f=inp.files[0];if(!f){res(null);return;} keepAlpha=/png|webp|gif|svg/i.test(f.type||'')||/\.(png|webp|gif|svg)$/i.test(f.name||'');
         var rd=new FileReader();rd.onload=function(){
           var img=new Image();img.onload=function(){
             var scale=Math.min(1,maxW/img.width);var w=Math.round(img.width*scale),hh=Math.round(img.height*scale);
             var cv=document.createElement('canvas');cv.width=w;cv.height=hh;
             cv.getContext('2d').drawImage(img,0,0,w,hh);
-            res(cv.toDataURL('image/jpeg',0.82));
+            res(keepAlpha?cv.toDataURL('image/png'):cv.toDataURL('image/jpeg',0.82)); // PNG keeps transparent background
           };img.onerror=function(){res(rd.result);};img.src=rd.result;
         };rd.readAsDataURL(f);
       };
