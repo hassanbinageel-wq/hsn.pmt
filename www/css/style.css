@@ -357,3 +357,12 @@ textarea.input{resize:vertical;min-height:74px}
 .acc-row .input{flex:1;min-width:0}
 .acc-row .x{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--neg);background:var(--neg-soft);flex:none}
 .bank-pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+
+/* ---------- bank order + style preview ---------- */
+.ord-btns{display:flex;flex-direction:column;gap:3px;flex:none}
+.ord{width:28px;height:22px;border-radius:7px;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center;color:var(--ink-2)}
+.ord svg{transform:rotate(90deg)}
+.ord[data-down] svg{transform:rotate(-90deg)}
+.ord:disabled{opacity:.3}
+.bank-prev-wrap{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;margin-bottom:6px;padding:8px 0}
+.bank-prev-page{width:794px;transform-origin:top right;background:#fff;color:#1a1a1a;font-family:Tajawal,sans-serif;direction:rtl}

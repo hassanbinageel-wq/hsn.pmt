@@ -125,12 +125,15 @@ window.App = window.App || {};
       var B=A.Store.settings().banks=A.Store.settings().banks||{holder:'',list:[]};
       var body='<div class="notice info">'+A.icon('info',18)+'<div>تظهر في أسفل الفاتورة فوق «شكرًا لتعاملكم معنا». تقدر تخفي أي بنك من هنا، أو تختار البنوك لكل فاتورة من داخلها.</div></div>';
       body+='<div class="field"><label>اسم الحساب (موحّد لكل البنوك)</label><input class="input" id="bHolder" placeholder="مثال: حسن جمال الليل" value="'+A.esc(B.holder||'')+'"></div>';
-      body+='<div class="section-title">البنوك والمحافظ ('+B.list.length+')</div>';
+      body+='<div class="field"><label>شكل عرض الحسابات في الفاتورة</label><div class="seg" id="bStyle">'+A.PDF.BANK_STYLES.map(function(s){return '<button data-st="'+s[0]+'" class="'+((B.style||'cards')===s[0]?'on':'')+'">'+s[1]+'</button>';}).join('')+'</div><div class="hint">الشكل الافتراضي، وتقدر تغيّره لكل فاتورة من داخلها.</div></div>';
+      body+='<div class="bank-prev-wrap"><div id="bPrev"></div></div>';
+      body+='<div class="section-title">البنوك والمحافظ ('+B.list.length+')</div>'+(B.list.length>1?'<div class="hint" style="margin:-4px 4px 8px">رتّب الظهور في الفاتورة بالأسهم.</div>':'');
       if(!B.list.length) body+='<div class="empty">'+A.icon('wallet',48)+'<div class="t">لا توجد حسابات</div><div>أضف بنكًا أو صرافة أو محفظة</div></div>';
       else body+='<div class="list">'+B.list.map(function(k,i){
         var accs=(k.accounts||[]).filter(function(a){return (a.number||'').trim();});
         return '<div class="row-item bank-row" data-bank="'+i+'">'+(k.logo?'<div class="avatar bank-logo"><img src="'+k.logo+'"></div>':'<div class="avatar">'+A.icon('wallet',20)+'</div>')+
-          '<div class="grow"><div class="t">'+A.esc(k.name||'—')+'</div><div class="s">'+(accs.length?accs.map(function(a){return A.esc((A.CURRENCIES[a.currency]||{}).label||a.currency);}).join(' · '):'لا أرقام حسابات')+'</div></div>'+
+          '<div class="grow"><div class="t">'+A.esc(k.name||'—')+'</div><div class="s">'+(accs.length?accs.map(function(a){return a.currency?A.esc((A.CURRENCIES[a.currency]||{}).label||a.currency):'بدون عملة';}).join(' · '):'لا أرقام حسابات')+'</div></div>'+
+          '<div class="ord-btns"><button class="ord" data-up="'+i+'"'+(i===0?' disabled':'')+'>'+A.icon('back',15)+'</button><button class="ord" data-down="'+i+'"'+(i===B.list.length-1?' disabled':'')+'>'+A.icon('back',15)+'</button></div>'+
           '<div class="track'+(k.on!==false?' on':'')+'" data-bon="'+i+'" title="إظهار في الفواتير"></div></div>';
       }).join('')+'</div>';
       body+='<button class="btn soft" id="bAdd" style="margin-top:12px">'+A.icon('plus',18)+' إضافة بنك / صرافة / محفظة</button>';
@@ -139,23 +142,37 @@ window.App = window.App || {};
       function keepHolder(){B.holder=A.$('#bHolder').value.trim();}
       A.$$('[data-bon]').forEach(function(el){el.onclick=function(e){e.stopPropagation();var k=B.list[+el.getAttribute('data-bon')];k.on=(k.on===false);el.classList.toggle('on',k.on);A.Store.persist();};});
       A.$$('[data-bank]').forEach(function(el){el.onclick=function(){keepHolder();bankForm(+el.getAttribute('data-bank'));};});
+      function move(i,d){var j=i+d;if(j<0||j>=B.list.length)return;keepHolder();var x=B.list[i];B.list[i]=B.list[j];B.list[j]=x;A.Store.persist();A.Views.settings.banks();}
+      A.$$('[data-up]').forEach(function(el){el.onclick=function(e){e.stopPropagation();move(+el.getAttribute('data-up'),-1);};});
+      A.$$('[data-down]').forEach(function(el){el.onclick=function(e){e.stopPropagation();move(+el.getAttribute('data-down'),1);};});
+      function prev(){
+        var color=(A.Store.settings().invoice||{}).color||'#0b110e', holderBak=B.holder; B.holder=A.$('#bHolder').value.trim();
+        var listBak=B.list, sample=false;
+        if(!B.list.some(function(k){return k.on!==false&&(k.accounts||[]).some(function(a){return a.number;});})){sample=true;B.list=[{id:'s1',name:'بنك تجريبي',on:true,accounts:[{currency:'USD',number:'1234 5678 9012'},{currency:'SAR',number:'SA00 0000 0000 0000'}]},{id:'s2',name:'محفظة تجريبية',on:true,accounts:[{currency:'',number:'777 000 111'}]}];}
+        var h=A.PDF.banksHTML({},color,B.style||'cards'); B.list=listBak; B.holder=holderBak;
+        var box=A.$('#bPrev'); box.innerHTML='<div class="bank-prev-page">'+h+'</div>'+(sample?'<div class="hint center" style="margin-top:6px">معاينة ببيانات تجريبية</div>':'');
+        var pg=box.firstChild; var sc=Math.min(1,(box.parentElement.clientWidth-2)/794); pg.style.transform='scale('+sc+')'; box.style.height=(pg.offsetHeight*sc+(sample?24:0))+'px';
+      }
+      A.$('#bStyle').onclick=function(e){var b=e.target.closest('[data-st]');if(!b)return;B.style=b.getAttribute('data-st');A.$$('#bStyle button').forEach(function(x){x.classList.toggle('on',x===b);});A.Store.persist();prev();};
+      A.$('#bHolder').oninput=prev;
+      prev();
       A.$('#bAdd').onclick=function(){keepHolder();bankForm(null);};
       A.$('#bSave').onclick=function(){keepHolder();A.Store.persist();A.toast('تم الحفظ','ok');A.go('#/more');};
       function bankForm(idx){
-        var k=idx!=null?JSON.parse(JSON.stringify(B.list[idx])):{id:A.uid(),name:'',logo:'',on:true,accounts:[{id:A.uid(),currency:'USD',number:''}]};
-        if(!k.accounts||!k.accounts.length)k.accounts=[{id:A.uid(),currency:'USD',number:''}];
+        var k=idx!=null?JSON.parse(JSON.stringify(B.list[idx])):{id:A.uid(),name:'',logo:'',on:true,accounts:[{id:A.uid(),currency:'',number:''}]};
+        if(!k.accounts||!k.accounts.length)k.accounts=[{id:A.uid(),currency:'',number:''}];
         function read(sh){k.name=A.$('#kName',sh).value.trim();k.accounts.forEach(function(a,i){a.currency=A.$('#ac_'+i,sh).value;a.number=A.$('#an_'+i,sh).value.trim();});}
         function render(){
           var sh=A.sheet('<h2>'+(idx!=null?'تعديل':'إضافة')+' بنك / صرافة / محفظة</h2>'+
             '<div class="field"><label>الشعار (PNG مدعوم بخلفية شفافة)</label><div class="img-pick" id="kLogo">'+(k.logo?'<img src="'+k.logo+'" style="max-height:70px">':A.icon('image',28))+'<div>'+(k.logo?'تغيير الشعار':'اختيار شعار')+'</div></div>'+(k.logo?'<div class="hint center"><a id="kLogoRm">إزالة الشعار</a></div>':'')+'</div>'+
             '<div class="field"><label>اسم البنك / الصرافة / المحفظة *</label><input class="input" id="kName" placeholder="مثال: بنك الكريمي" value="'+A.esc(k.name)+'"></div>'+
-            '<div class="section-title" style="margin-top:4px">الحسابات (العملة · رقم الحساب)</div>'+
-            k.accounts.map(function(a,i){return '<div class="acc-row"><select class="select" id="ac_'+i+'">'+A.CUR_LIST.map(function(c){return '<option value="'+c+'"'+(a.currency===c?' selected':'')+'>'+A.CURRENCIES[c].ar+'</option>';}).join('')+'</select><input class="input" id="an_'+i+'" inputmode="text" dir="ltr" placeholder="رقم الحساب / IBAN" value="'+A.esc(a.number||'')+'">'+(k.accounts.length>1?'<button class="x" data-accdel="'+i+'">'+A.icon('trash',14)+'</button>':'')+'</div>';}).join('')+
+            '<div class="section-title" style="margin-top:4px">الحسابات (العملة اختيارية · رقم الحساب)</div>'+
+            k.accounts.map(function(a,i){return '<div class="acc-row"><select class="select" id="ac_'+i+'"><option value=""'+(!a.currency?' selected':'')+'>بدون عملة</option>'+A.CUR_LIST.map(function(c){return '<option value="'+c+'"'+(a.currency===c?' selected':'')+'>'+A.CURRENCIES[c].ar+'</option>';}).join('')+'</select><input class="input" id="an_'+i+'" inputmode="text" dir="ltr" placeholder="رقم الحساب / IBAN" value="'+A.esc(a.number||'')+'">'+(k.accounts.length>1?'<button class="x" data-accdel="'+i+'">'+A.icon('trash',14)+'</button>':'')+'</div>';}).join('')+
             '<button class="btn soft sm" id="accAdd" style="margin-top:6px">'+A.icon('plus',15)+' إضافة حساب بعملة أخرى</button>'+
             '<div class="btn-row" style="margin-top:14px">'+(idx!=null?'<button class="btn danger" id="kDel">'+A.icon('trash',18)+' حذف</button>':'')+'<button class="btn" id="kSave">حفظ</button></div>');
           A.$('#kLogo',sh).onclick=function(){read(sh);A.pickImage(320).then(function(d){if(d){k.logo=d;render();}});};
           if(A.$('#kLogoRm',sh))A.$('#kLogoRm',sh).onclick=function(){read(sh);k.logo='';render();};
-          A.$('#accAdd',sh).onclick=function(){read(sh);var used=k.accounts.map(function(a){return a.currency;});var next=A.CUR_LIST.filter(function(c){return used.indexOf(c)<0;})[0]||'USD';k.accounts.push({id:A.uid(),currency:next,number:''});render();};
+          A.$('#accAdd',sh).onclick=function(){read(sh);var used=k.accounts.map(function(a){return a.currency;});var next=A.CUR_LIST.filter(function(c){return used.indexOf(c)<0;})[0]||'';k.accounts.push({id:A.uid(),currency:next,number:''});render();};
           A.$$('[data-accdel]',sh).forEach(function(el){el.onclick=function(){read(sh);k.accounts.splice(+el.getAttribute('data-accdel'),1);render();};});
           if(A.$('#kDel',sh))A.$('#kDel',sh).onclick=function(){A.confirm('حذف '+(k.name||'هذا الحساب')+'؟','',{danger:true,ok:'حذف'}).then(function(ok){if(ok){B.list.splice(idx,1);A.Store.persist();A.closeSheet();A.Views.settings.banks();}});};
           A.$('#kSave',sh).onclick=function(){read(sh);if(!k.name){A.toast('أدخل اسم البنك','err');return;}

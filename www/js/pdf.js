@@ -118,26 +118,54 @@ window.App = window.App || {};
       if(Array.isArray(v.bankIds)) return list.filter(function(k){return v.bankIds.indexOf(k.id)>=0;});
       return list.filter(function(k){return k.on!==false;});
     },
-    banksHTML:function(v,color){
+    BANK_STYLES:[['cards','بطاقات'],['table','جدول'],['compact','مختصر'],['band','شريط ملوّن']],
+    banksHTML:function(v,color,styleOverride){
       var B=(A.Store.settings().banks)||{}, banks=this.invoiceBanks(v);
       if(!banks.length) return '';
-      var cards=banks.map(function(k){
-        var accs=(k.accounts||[]).filter(function(a){return (a.number||'').trim();});
-        var rows=accs.map(function(a){var c=A.CURRENCIES[a.currency]||{ar:a.currency||''};
-          return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;border-top:1px dashed #e6ebe8">'+
-            '<span style="color:#666;font-size:11.5px;white-space:nowrap">'+A.esc(c.ar||'')+'</span>'+
-            '<b style="direction:ltr;unicode-bidi:isolate;font-size:12.5px;letter-spacing:.4px;word-break:break-all;text-align:left">'+A.esc(a.number)+'</b></div>';}).join('');
-        return '<div style="flex:0 0 calc(50% - 6px);box-sizing:border-box;border:1px solid #e6ebe8;border-radius:10px;padding:9px 12px;background:#fbfcfb">'+
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
-            (k.logo?'<img src="'+k.logo+'" style="height:26px;max-width:70px;object-fit:contain">':'')+
-            '<b style="font-size:13px">'+A.esc(k.name||'')+'</b></div>'+rows+'</div>';
-      }).join('');
+      var style=styleOverride||v.bankStyle||B.style||'cards';
+      var esc=A.esc, NUM='direction:ltr;unicode-bidi:isolate;letter-spacing:.4px;word-break:break-all';
+      function accs(k){return (k.accounts||[]).filter(function(a){return (a.number||'').trim();});}
+      function curName(a){return a.currency?((A.CURRENCIES[a.currency]||{}).ar||a.currency):'';}
+      function logo(k,h){return k.logo?'<img src="'+k.logo+'" style="height:'+h+'px;max-width:'+(h*2.7)+'px;object-fit:contain;flex:none">':'';}
+      var body='';
+      if(style==='table'){
+        var rows='';
+        banks.forEach(function(k,bi){var list=accs(k);list.forEach(function(a,j){
+          var bg=bi%2?'#fafbfa':'#ffffff';
+          rows+='<tr style="background:'+bg+'">'+
+            (j===0?'<td rowspan="'+list.length+'" style="padding:7px 10px;border-top:1px solid #e6ebe8;vertical-align:middle"><div style="display:flex;align-items:center;gap:7px">'+logo(k,22)+'<b style="font-size:12.5px">'+esc(k.name||'')+'</b></div></td>':'')+
+            '<td style="padding:7px 10px;border-top:1px solid #eef1ef;color:#666;font-size:11.5px;text-align:center;white-space:nowrap">'+esc(curName(a))+'</td>'+
+            '<td style="padding:7px 10px;border-top:1px solid #eef1ef;font-weight:700;font-size:12.5px;text-align:left;'+NUM+'">'+esc(a.number)+'</td></tr>';});});
+        body='<table style="width:100%;border-collapse:collapse;border:1px solid #e6ebe8;border-radius:10px;overflow:hidden;font-size:12px">'+
+          '<thead><tr style="background:#f2f5f3;color:#444"><th style="padding:7px 10px;text-align:right;font-weight:700;width:40%">البنك</th><th style="padding:7px 10px;font-weight:700;width:18%">العملة</th><th style="padding:7px 10px;text-align:left;font-weight:700">رقم الحساب</th></tr></thead><tbody>'+rows+'</tbody></table>';
+      }else if(style==='compact'){
+        body=banks.map(function(k,bi){
+          var parts=accs(k).map(function(a){var c=curName(a);return '<span style="white-space:nowrap">'+(c?'<span style="color:#777">'+esc(c)+': </span>':'')+'<b style="'+NUM+'">'+esc(a.number)+'</b></span>';}).join('<span style="color:#c9d2cd;margin:0 8px">|</span>');
+          return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;'+(bi?'border-top:1px dashed #e3e8e5;':'')+'font-size:12.5px">'+
+            '<div style="display:flex;align-items:center;gap:6px;flex:none;min-width:150px">'+logo(k,20)+'<b>'+esc(k.name||'')+'</b></div>'+
+            '<div style="display:flex;flex-wrap:wrap;align-items:center;row-gap:3px">'+parts+'</div></div>';
+        }).join('');
+      }else if(style==='band'){
+        body='<div style="display:flex;flex-wrap:wrap;gap:10px">'+banks.map(function(k){
+          var rows=accs(k).map(function(a){var c=curName(a);return '<div style="padding:5px 10px;border-top:1px solid #eef1ef;display:flex;'+(c?'justify-content:space-between':'justify-content:center')+';gap:8px;align-items:center">'+(c?'<span style="color:#777;font-size:11px;white-space:nowrap">'+esc(c)+'</span>':'')+'<b style="font-size:12px;'+NUM+'">'+esc(a.number)+'</b></div>';}).join('');
+          return '<div style="flex:1 1 calc(33.33% - 10px);min-width:200px;box-sizing:border-box;border:1px solid #e3e8e5;border-radius:10px;overflow:hidden;background:#fff">'+
+            '<div style="background:'+color+';color:#fff;padding:7px 10px;display:flex;align-items:center;gap:7px">'+(k.logo?'<span style="background:#fff;border-radius:6px;padding:2px 4px;display:inline-flex">'+logo(k,18)+'</span>':'')+'<b style="font-size:12.5px">'+esc(k.name||'')+'</b></div>'+rows+'</div>';
+        }).join('')+'</div>';
+      }else{ // cards
+        body='<div style="display:flex;flex-wrap:wrap;gap:12px">'+banks.map(function(k){
+          var rows=accs(k).map(function(a){var c=curName(a);
+            return '<div style="display:flex;'+(c?'justify-content:space-between':'justify-content:flex-end')+';align-items:center;gap:10px;padding:5px 0;border-top:1px dashed #e6ebe8">'+
+              (c?'<span style="color:#666;font-size:11.5px;white-space:nowrap">'+esc(c)+'</span>':'')+
+              '<b style="font-size:12.5px;text-align:left;'+NUM+'">'+esc(a.number)+'</b></div>';}).join('');
+          return '<div style="flex:0 0 calc(50% - 6px);box-sizing:border-box;border:1px solid #e6ebe8;border-radius:10px;padding:9px 12px;background:#fbfcfb">'+
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+logo(k,26)+'<b style="font-size:13px">'+esc(k.name||'')+'</b></div>'+rows+'</div>';
+        }).join('')+'</div>';
+      }
       return '<div style="margin:0 44px 14px">'+
         '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px">'+
           '<b style="font-size:14px;color:'+color+'">حساباتنا البنكية</b>'+
-          ((B.holder||'').trim()?'<span style="font-size:12.5px;color:#555">اسم الحساب: <b style="color:#1a1a1a">'+A.esc(B.holder)+'</b></span>':'')+
-        '</div>'+
-        '<div style="display:flex;flex-wrap:wrap;gap:12px">'+cards+'</div></div>';
+          ((B.holder||'').trim()?'<span style="font-size:12.5px;color:#555">اسم الحساب: <b style="color:#1a1a1a">'+esc(B.holder)+'</b></span>':'')+
+        '</div>'+body+'</div>';
     },
     invoiceHTML:invoiceHTML,
     build:function(v){

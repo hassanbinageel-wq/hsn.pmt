@@ -96,7 +96,8 @@ window.App = window.App || {};
     if(allBanks.length){
       var selIds=Array.isArray(v.bankIds)?v.bankIds:allBanks.filter(function(k){return k.on!==false;}).map(function(k){return k.id;});
       body+='<div class="switch"><span>إظهار الحسابات البنكية في الفاتورة</span><div class="track '+(v.showBanks!==false?'on':'')+'" id="vShowBanks"></div></div>';
-      body+='<div id="vBankPick" class="'+(v.showBanks===false?'hidden':'')+'" style="margin:-4px 0 8px"><div class="bank-pick">'+allBanks.map(function(k){var on=selIds.indexOf(k.id)>=0;return '<button type="button" class="pill'+(on?' pill-on':'')+'" data-bk="'+k.id+'">'+(on?'✓ ':'')+A.esc(k.name)+'</button>';}).join('')+'</div><div class="hint">اختر البنوك اللي تظهر في هذه الفاتورة فقط.</div></div>';
+      body+='<div id="vBankPick" class="'+(v.showBanks===false?'hidden':'')+'" style="margin:-4px 0 8px"><div class="bank-pick">'+allBanks.map(function(k){var on=selIds.indexOf(k.id)>=0;return '<button type="button" class="pill'+(on?' pill-on':'')+'" data-bk="'+k.id+'">'+(on?'✓ ':'')+A.esc(k.name)+'</button>';}).join('')+'</div><div class="hint">اختر البنوك اللي تظهر في هذه الفاتورة فقط.</div>'+
+        '<div class="field" style="margin:10px 0 0"><label>شكل عرض الحسابات</label><select class="select" id="vBankStyle"><option value="">حسب الإعدادات</option>'+A.PDF.BANK_STYLES.map(function(s){return '<option value="'+s[0]+'"'+(v.bankStyle===s[0]?' selected':'')+'>'+s[1]+'</option>';}).join('')+'</select></div></div>';
     }
     body+='<div class="switch"><span>إظهار رقم العميل في الفاتورة</span><div class="track '+(v.showClientPhone!==false?'on':'')+'" id="vShowPhone"></div></div>';
     body+='<div class="switch"><span>إصدار الفاتورة (غير مسودة)</span><div class="track '+(v.status!=='draft'?'on':'')+'" id="vIssued"></div></div>';
@@ -117,6 +118,7 @@ window.App = window.App || {};
     };});
     A.$('#vcReset').onclick=function(){draft.hiddenCols={};A.$$('[data-vis]').forEach(function(x){var k=x.getAttribute('data-vis');x.classList.add('pill-on');x.textContent='✓ '+(k==='num'?'# الترقيم':globalCols()[k]);});var g=globalCols();A.$('#vc_qty').value=g.qty;A.$('#vc_desc').value=g.desc;A.$('#vc_type').value=g.type;A.$('#vc_price').value=g.price;A.$('#vc_total').value=g.total;draft.columns=readCols();A.$$('[data-qp]').forEach(function(x){x.classList.toggle('pill-on',x.getAttribute('data-qp')===g.qty);});};
     if(A.$('#vShowBanks')) A.$('#vShowBanks').onclick=function(){this.classList.toggle('on');draft.showBanks=this.classList.contains('on');A.$('#vBankPick').classList.toggle('hidden',!draft.showBanks);};
+    if(A.$('#vBankStyle')) A.$('#vBankStyle').onchange=function(){draft.bankStyle=this.value||undefined;};
     A.$$('[data-bk]').forEach(function(b){b.onclick=function(){
       var ids=A.$$('[data-bk]').filter(function(x){return x.classList.contains('pill-on');}).map(function(x){return x.getAttribute('data-bk');});
       var id=b.getAttribute('data-bk'), on=ids.indexOf(id)<0;
